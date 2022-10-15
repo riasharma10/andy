@@ -5,9 +5,12 @@ const tokenGenerator = require('./token_generator');
 const config = require('./config');
 
 const router = new Router();
+const twilio = require('twilio');
+const {MessagingResponse} = require('twilio').twiml; 
 
 // Convert keys to camelCase to conform with the twilio-node api definition contract
 const camelCase = require('camelcase');
+const { User } = require('./models/user.model');
 function camelCaseKeys(hashmap) {
   var newhashmap = {};
   Object.keys(hashmap).forEach(function(key) {
@@ -48,6 +51,37 @@ router.get('/config', (req, res) => {
   res.json(config);
 });
 
+// router.post('/sendMessage', function (req, res) {
+//   const contnet = req.body.message;
+//   const recept = req.body.to;
+//   const userId = req.body.userId;
+//   const date = new Date();
+
+//   twilio.messages
+//   .create({
+//     body: contnet,
+//     from: number, // this is hardcoded right now
+//     to: recept
+//   });
+
+//   // const outgoingMessage = new Message({
+//   //   sent: true,
+//   //   phoneNumber: number,
+//   //   patientID: patientID,
+//   //   message: contnet,
+//   //   sender: 'COACH',
+//   //   date: date
+//   // });
+
+//   // outgoingMessage.save().then(() => {
+//   //   res.status(200).send({
+//   //     success: true,
+//   //     msg: outgoingMessage
+//   //   });
+//   // }).catch((err) => console.log(err));
+// });
+
+
 
 //Create a facebook-messenger binding based on the authentication webhook from Facebook
 router.post('/messenger_auth', function(req, res) {
@@ -74,6 +108,59 @@ router.get('/messenger_auth', function(req, res) {
   res.send(req.query["hub.challenge"]);
 });
 
+
+router.post('/sms', function(req, res) {
+  // Start our TwiML response.
+  
+  const twiml = new MessagingResponse();
+  const message = req.body.Body;
+  var response = ''
+
+  User.findBy({phoneNumber: req.body.From.slice(2)})
+  .then((user) => {
+    if (user) {
+      const product_name = ''
+      const product_price = 0
+      const userCard = user.cardNumber
+      const userCardType = user.cardType
+      const userCardExp = user.cardExp
+      const userAddress = user.address
+      const lastFour = userCard.slice(-4)
+
+      if (message.toLowerCase() == 'y') {
+        // call API and go through the checkout process for the link
+        // ON SUCCESS:
+        response = twiml.message('Thank you for your purchase. Your order will be shipped to you shortly.')
+        // ON FAILURE:
+        //response = twiml.message('Sorry, we were unable to process your order. Please try again later.')
+      } else if (message.toLowerCase() == 'n') {
+        response = twiml.message('Ok! We will not go through the checkout process.');
+      } else {
+        // parse the url to get product name
+       
+        
+        if (product_name == "NOT_VALID") {
+          response = twiml.message('Sorry, the link is not valid. Please try again.');
+        } else {
+          response = twiml.message('Are you sure you would like to purchase ' + product_name + ' for price: ' + product_price + ' with card ending in ' + lastFour + ' to address ' + userAddress + ' . Reply Y to confirm or N to cancel.');
+        }
+      }
+    } else {
+      response = twiml.message('You are not registered with us. Please register to continue.');
+    }
+  }).catch((err) => console.log(err));
+
+  
+  console.log(`Incoming message from ${req.body.From}: ${req.body.Body}`);
+  twiml.message(req.body.Body)
+  // Add a text message.
+
+  // Add a picture message.
+  //msg.media('https://demo.twilio.com/owl.png');
+
+  res.writeHead(200, {'Content-Type': 'text/xml'});
+  res.end(twiml.toString());
+});
 
 
 module.exports = router;
