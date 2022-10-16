@@ -1,0 +1,32 @@
+{
+    "manifest_version": 3,
+    "name": "Focus Mode",
+    "description": "Enable reading mode on Chrome's official Extensions and Chrome Web Store documentation.",
+    "version": "1.0",
+    "icons": {
+      "16": "images/16px.png",
+      "32": "images/32px.png",
+      "48": "images/48px.png",
+      "128": "images/128px.png"
+    },
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_icon": {
+        "16": "images/16px.png",
+        "32": "images/32px.png",
+        "48": "images/48px.png",
+        "128": "images/128px.png"
+      }
+    },
+    "permissions": ["scripting", "activeTab", "contextMenus"],
+    "commands": {
+      "_execute_action": {
+        "suggested_key": {
+          "default": "Ctrl+U",
+          "mac": "Command+U"
+        }
+      }
+    }
+  }
