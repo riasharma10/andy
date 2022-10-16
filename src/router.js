@@ -5,11 +5,15 @@ const tokenGenerator = require('./token_generator');
 const config = require('./config');
 
 const router = new Router();
+const axios = require('axios');
 const accountSid = 'AC1f53a8ff570072110bce88fae1704337'; // Your Account SID from www.twilio.com/console
 const authToken = '308760c997075743ecc23fb725f6274c';
 
 const twilio = require('twilio');
 const client = new twilio(accountSid, authToken);
+var url = ''
+var product_name = '';
+var product_price = 0;
 
 const { MessagingResponse } = require('twilio').twiml;
 
@@ -168,41 +172,66 @@ router.post('/signup', (req, res) => {
 
 router.post('/sms_reply', function (req, res) {
     // Start our TwiML response.
+    console.log("in the sms reply")
 
     const twiml = new MessagingResponse();
     const message = req.body.Body;
     var response = '';
 
-    User.findBy({ phoneNumber: req.body.From.slice(2) })
+    User.findOne({ phoneNumber: req.body.From.slice(2) })
         .then((user) => {
             if (user) {
-                const product_name = '';
-                const product_price = 0;
+                console.log("user found");
+                
                 const userCard = user.cardNumber;
+                console.log("userCar: " + userCard);
                 const userCardType = user.cardType;
+                console.log("userCardType: " + userCardType);
                 const userCardExp = user.cardExp;
+                console.log("userCardExp: " + userCardExp);
                 const userAddress = user.address;
+                console.log("userAddress: " + userAddress);
                 const lastFour = userCard.slice(-4);
+                console.log("lastFour: " + lastFour);
+
 
                 //if time, add a check to see if the user had just sent a link before checking for 'y' or 'n'
                 if (message.toLowerCase() == 'y') {
                     // call API and go through the checkout process for the link
                     // ON SUCCESS:
+                    console.log("in y case")
+
                     response = twiml.message(
-                        'Thank you for confirming your purchase. We have completed the checkout process for you.'
+                      'Thank you for confirming your purchase. We have completed the checkout process for you.'
                     );
-                    // ON FAILURE:
-                    //response = twiml.message('Sorry, we were unable to process your order. Please try again later.')
+                    
+
                 } else if (message.toLowerCase() == 'n') {
                     response = twiml.message(
                         'Ok! We will not go through with the purchase.'
                     );
                 } else {
                     // parse the url to get product name
+                    url = message
+                    in_size = false
+                    const input = {
+                      "url": url,
+                      "size": "M",
+                    }
 
-                    if (product_name == 'NOT_VALID') {
+                    axios.post('http://localhost:8000/hello_world', input)
+                      .then(function (response) {
+                        product_name = response.item
+                        product_price = response.price
+                        in_size = response.in_size
+                      })
+                      .catch(function (error) {
+                        console.log(error)
+                      });
+
+                    if (!in_size) {
                         response = twiml.message(
-                            'Sorry, the link is not valid. Please try again.'
+                            'Sorry, the item is sold out. Please try again later.'
                         );
                     } else {
                         response = twiml.message(
@@ -218,6 +247,9 @@ router.post('/sms_reply', function (req, res) {
                         );
                     }
                 }
+
+                res.writeHead(200, { 'Content-Type': 'text/xml' });
+                res.end(twiml.toString());
             } else {
                 response = twiml.message(
                     'You are not registered with us. Please register to continue.'
@@ -227,14 +259,13 @@ router.post('/sms_reply', function (req, res) {
         .catch((err) => console.log(err));
 
     console.log(`Incoming message from ${req.body.From}: ${req.body.Body}`);
-    twiml.message(req.body.Body);
+    //twiml.message(req.body.Body);
     // Add a text message.
 
     // Add a picture message.
     //msg.media('https://demo.twilio.com/owl.png');
 
-    res.writeHead(200, { 'Content-Type': 'text/xml' });
-    res.end(twiml.toString());
+    
 });
 
 module.exports = router;
