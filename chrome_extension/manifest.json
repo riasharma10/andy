@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
-    "name": "Focus Mode",
-    "description": "Enable reading mode on Chrome's official Extensions and Chrome Web Store documentation.",
+    "name": "Andy",
+    "description": "1-click personal shopping.",
     "version": "1.0",
     "icons": {
       "16": "images/16px.png",
@@ -13,6 +13,7 @@
       "service_worker": "background.js"
     },
     "action": {
+      "default_popup": "popup.html",
       "default_icon": {
         "16": "images/16px.png",
         "32": "images/32px.png",
@@ -29,4 +30,6 @@
         }
       }
     }
+
+
   }
