@@ -5,12 +5,18 @@ const tokenGenerator = require('./token_generator');
 const config = require('./config');
 
 const router = new Router();
+const accountSid = 'AC1f53a8ff570072110bce88fae1704337'; // Your Account SID from www.twilio.com/console
+const authToken = 'cf0bb2dd4d4b7d3a7ed08bd1fc790352';
+
 const twilio = require('twilio');
+const client = new twilio(accountSid, authToken);
+
 const {MessagingResponse} = require('twilio').twiml; 
 
 // Convert keys to camelCase to conform with the twilio-node api definition contract
 const camelCase = require('camelcase');
-const { User } = require('./models/user.model');
+const  User  = require('./models/user.model');
+
 function camelCaseKeys(hashmap) {
   var newhashmap = {};
   Object.keys(hashmap).forEach(function(key) {
@@ -107,6 +113,51 @@ router.get('/messenger_auth', function(req, res) {
   console.log(req.query["hub.challenge"]);
   res.send(req.query["hub.challenge"]);
 });
+
+
+// firstName: { type: String, required: true },
+//   lastName: { type: String, required: true },
+//   email: { type: String, required: true },
+//   address: { type: String, required: true },
+//   password: { type: String, required: true },
+//   phoneNumber: { type: String, required: true },
+//   cardNumber: { type: String, required: true },
+//   cardExp: { type: String, required: true },
+//   cardCVC: { type: String, required: true },
+
+router.post('/signup', (req, res) => {
+  const { email, password, firstName, lastName, address, phoneNumber, cardNumber, cardExp, cardCVC } = req.body;
+  const user = new User({ 
+    firstName, 
+    lastName, 
+    email,
+    address,
+    password,
+    phoneNumber,
+    cardNumber,
+    cardExp,
+    cardCVC });
+  
+  
+  user.save().then(() => {
+    res.status(200).send({
+      success: true,
+      msg: user
+    });
+  }).catch((err) => console.log(err));
+
+  console.log("phone number: " + '+1'+ phoneNumber);
+
+  client.messages
+  .create({
+    body: 'Welcome to Andy! We are excited to have you on board.',
+    to: '+1'+ phoneNumber, // Text this number
+    from: '+13049244804', // From a valid Twilio number
+  })
+  .then((message) => console.log(message.sid));
+});
+
+
 
 
 router.post('/sms', function(req, res) {
